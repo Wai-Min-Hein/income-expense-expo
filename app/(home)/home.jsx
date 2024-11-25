@@ -40,7 +40,6 @@ const home = () => {
   const { currentUser } = useSelector((state) => state.user);
   const { offLineDatas } = useSelector((state) => state.data);
 
-
   const dispatch = useDispatch();
 
   const [datas, setDatas] = useState([]);
@@ -251,9 +250,8 @@ const home = () => {
   };
 
   return (
-    <SafeAreaView>
       <ScrollView>
-        <View className="pb-8">
+        <View className="pb-8 pt-4">
           <View className="flex flex-row justify-end items-end">
             <Image
               source={images.profile}
@@ -370,7 +368,6 @@ const home = () => {
           </ScrollView>
         </View>
       </ScrollView>
-    </SafeAreaView>
   );
 };
 

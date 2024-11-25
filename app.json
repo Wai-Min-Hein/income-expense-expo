@@ -1,14 +1,15 @@
 {
   "expo": {
-    "name": "income-expense",
-    "slug": "income-expense",
-    "scheme": "income-expense",
-    "version": "1.0.0",
+    "name": "Spend Tracker",
+    "slug": "spend_tracker",
+    "scheme": "spend_tracker",
+    "version": "1.1.1",
+    "newArchEnabled": true,
     "orientation": "portrait",
-    "icon": "./assets/images/landing.png",
+    "icon": "./assets/and_icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/landing.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -20,8 +21,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/landing.png",
+        "backgroundColor": "#6987ff"
       },
       "package": "com.waimin.incomeexpense"
     },
@@ -36,7 +37,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "b0b09da1-4fb8-4592-9aaf-490af8c67645"
+        "projectId": "f3d4943f-f095-4b06-9402-d5a16ba817d3"
       }
     }
   }

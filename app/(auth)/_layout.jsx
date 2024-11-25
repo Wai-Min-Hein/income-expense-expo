@@ -1,33 +1,36 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Stack, router } from "expo-router";
 import { useSelector } from "react-redux";
 
 const AuthLayout = () => {
   const { currentUser } = useSelector((state) => state.user);
+  const [mounte, setMounte] = useState(false)
+  useEffect(() => {
+    setMounte(prev => !prev)
+  }, [])
 
+  useEffect(() => {
+    // Only navigate if currentUser exists
+    if (mounte && currentUser) {
+      router.push("home"); // Use replace to avoid going back to login
+    }
+  }, [currentUser, mounte,router]); 
 
-    
-    currentUser &&  router.push("home");
-
-    useEffect(() => {
-      if (currentUser) {
-        router.push("home");
-      }
-    }, [])
 
   return (
     <>
       {!currentUser && (
-        
-        <Stack>
+        <Stack
+        screenOptions={{
+          headerShown: false
+        }}
+        >
           <Stack.Screen
             name="sign-in"
-            options={{ headerShown: false }}
           ></Stack.Screen>
 
           <Stack.Screen
             name="sign-up"
-            options={{ headerShown: false }}
           ></Stack.Screen>
         </Stack>
       )}

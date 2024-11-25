@@ -4,15 +4,14 @@ import { Stack, router } from "expo-router";
 import { useSelector } from "react-redux";
 
 const HomeLayout = () => {
-  // const {currentUser} = useSelector(state => state.user)
+  const {currentUser} = useSelector(state => state.user)
 
-  // console.log(currentUser);
 
-  // useEffect(() => {
-  //   if (!currentUser) {
-  //     router.push("sign-in");
-  //   }
-  // },[])
+  useEffect(() => {
+    if (!currentUser) {
+      router.push("sign-in");
+    }
+  },[])
 
 
   return (

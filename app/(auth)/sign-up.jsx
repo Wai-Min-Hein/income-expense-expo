@@ -40,7 +40,7 @@ const SignUp = () => {
 
 
   return (
-    <SafeAreaView>
+    <SafeAreaView >
       <ScrollView>
         <View>
           <Text className='text-center text-2xl font-semibold'>Sign Up Page</Text>
