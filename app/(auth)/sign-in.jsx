@@ -22,11 +22,11 @@ const SignIn = () => {
   const handlePress = async () => {
     try {
       const res = await axios.post(
-        "https://income-expense-utqh.onrender.com/api/auth",
+        "https://expospendtracker.vercel.app/api/auth",
         form
       );
 
-      dispatch(signInSuccess(res.data.user ));
+      dispatch(signInSuccess(res.data.user));
       console.log("current user     ", currentUser);
 
       Alert.alert("Login successful");
@@ -35,9 +35,6 @@ const SignIn = () => {
       Alert.alert(error?.message);
     }
   };
-
-
-
 
   return (
     <SafeAreaView>

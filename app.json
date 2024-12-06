@@ -3,7 +3,7 @@
     "name": "Spend Tracker",
     "slug": "spend_tracker",
     "scheme": "spend_tracker",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "newArchEnabled": true,
     "orientation": "portrait",
     "icon": "./assets/and_icon.png",
@@ -37,7 +37,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "f3d4943f-f095-4b06-9402-d5a16ba817d3"
+        "projectId": "8c52208a-eeed-450e-b8cd-c36c066650f5"
       }
     }
   }

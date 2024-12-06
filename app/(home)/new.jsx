@@ -11,10 +11,9 @@ import { router } from "expo-router";
 import axios from "axios";
 import { addOffLineData } from "../../Slices/dataSlice";
 import "react-native-get-random-values";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 const New = () => {
-    
   const { currentUser } = useSelector((state) => state.user);
   const dispatch = useDispatch();
 
@@ -27,11 +26,7 @@ const New = () => {
     amount: "",
     time: "",
   });
-const id = uuidv4();
-  console.log(id);
-
-  
-
+  const id = uuidv4();
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   const showDatePicker = () => {
@@ -52,40 +47,32 @@ const id = uuidv4();
 
   const handleSubmit = async () => {
     try {
-      // const res = await axios.post(
-      //   "https://income-expense-utqh.onrender.com/api/data",
-      //   { userId: currentUser._id, ...form }
-      // );
+      dispatch(
+        addOffLineData({ userId: currentUser._id, ...form, offlineId: id })
+      );
 
-      dispatch(addOffLineData({ userId: currentUser._id, ...form, offlineId: id}))
-
-
-
-      Alert.alert("Add new Success!")
+      Alert.alert("Add new Success!");
 
       router.push("home");
-
-
     } catch (error) {
       router.push("home");
-      Alert.alert("Add new fail!")
-
+      Alert.alert("Add new fail!");
 
       console.log(error);
     }
   };
   return (
     <View className="relative">
-      <Text >New Income or Expense</Text>
+      <Text>New Income or Expense</Text>
 
       <CustomButtom
-      title={"Back"}
-      handlePress={() => router.push('home')}
-      containerStyle={"w-12 h-6 absolute top-0 right-0"}
-      textStyle={"!font-normal !text-sm"}
-    />
+        title={"Back"}
+        handlePress={() => router.push("home")}
+        containerStyle={"w-12 h-6 absolute top-0 right-0"}
+        textStyle={"!font-normal !text-sm"}
+      />
 
-      <View >
+      <View>
         <FormField
           handlePress={(e) => setForm({ ...form, title: e })}
           title={"Title"}

@@ -9,7 +9,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import RNPickerSelect from "react-native-picker-select";
@@ -37,27 +37,32 @@ import {
 } from "../../Slices/dataSlice";
 
 const home = () => {
+  const [syncBtnLoading, setSyncBtnLoading] = useState(false);
   const { currentUser } = useSelector((state) => state.user);
   const { offLineDatas } = useSelector((state) => state.data);
+
+  
+
+  const [type, setType] = useState('all')
+
+  const handleFilterType = (type) => {
+    setType(type)
+
+  }
+
+  const filteredData = useMemo(() => {
+    if (type === "all") return offLineDatas; // No filtering
+    return offLineDatas.filter((data) => data.type === type); // Replace 'type' with the actual property in your data
+  }, [type, offLineDatas]);
+
 
   const dispatch = useDispatch();
 
   const [datas, setDatas] = useState([]);
-  const [date, setDate] = useState("");
 
 
-  const [form, setForm] = useState({
-    title: "",
-    type: "",
-    amount: "",
-    time: "",
-  });
-
-  const [modalVisible, setModalVisible] = useState(false);
-  const [showDate, setShowDate] = useState(false);
-
-  const incomeDatas = offLineDatas?.filter((data) => data.type == "Income");
-  const expenseDatas = offLineDatas?.filter((data) => data.type == "Expense");
+  const incomeDatas = filteredData?.filter((data) => data.type == "Income");
+  const expenseDatas = filteredData?.filter((data) => data.type == "Expense");
 
   const totalIncomeAmount = incomeDatas.reduce(
     (pv, cv) => Number(pv) + Number(cv.amount),
@@ -70,11 +75,10 @@ const home = () => {
 
   const totalAmount = totalIncomeAmount - totalExpenseAmount;
 
-
   const fetchAllData = async () => {
     try {
       const res = await axios.get(
-        "https://income-expense-utqh.onrender.com/api/data"
+        "https://expospendtracker.vercel.app/api/data"
       );
 
       const allData = res.data.data;
@@ -82,52 +86,30 @@ const home = () => {
         (data) => data.userId == currentUser._id
       );
       setDatas(currentUserData);
+
+      offLineDatas.length==0 && dispatch(copyOffLineDatas(currentUserData))
     } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const handleAddNew = () => {
-    router.push("new");
-  };
-
-  const handleModalClose = () => {
-    setModalVisible(false);
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const res = await axios.post(
-        "https://income-expense-utqh.onrender.com/api/data",
-        { userId: currentUser._id, ...form }
-      );
-      setModalVisible(false);
-
-      fetchAllData();
-    } catch (error) {
-      Alert.alert(error);
       console.log(error);
     }
   };
 
   
+
+// change server datas to offlinedata after login for the first time -- start
 
   useEffect(() => {
     fetchAllData();
-    offLineDatas.length==0&& dispatch(copyOffLineDatas(datas)) ; 
+    // offLineDatas.length==0 && dispatch(copyOffLineDatas(datas)) ;
+  }, []);
+// change server datas to offlinedata after login for the first time -- end 
 
-
-  }, [datas]);
 
   
 
-
-
   const addOfflineToDBDatas = offLineDatas.filter(
-    (data) => data._id == undefined && data._id == null
+    (data) => !data._id
   );
 
-  // console.log("addOffLineData : ", addOfflineToDBDatas);
 
   // Extract the _id values from offlinedata array
   const offlineIds = offLineDatas.map((item) => item._id);
@@ -137,78 +119,82 @@ const home = () => {
     (item) => !offlineIds.includes(item._id)
   );
 
-  // console.log("toDeleteDatasFromDb : ", toDeleteDatasFromDb);
 
-  const handleSyncData = () => {
-    if (addOfflineToDBDatas.length == 0 && toDeleteDatasFromDb.length == 0)
+  const handleSyncData = async () => {
+
+
+    setSyncBtnLoading(true);
+  
+    
+  
+    // No data to sync
+    if (addOfflineToDBDatas.length === 0 && toDeleteDatasFromDb.length === 0) {
       dispatch(copyOffLineDatas(datas));
-    else if (addOfflineToDBDatas.length > 0) {
-      addOfflineToDBDatas.forEach((data, index) => {
-        const uploadData = async () => {
-          try {
-            const res = await axios.post(
-              "https://income-expense-utqh.onrender.com/api/data",
-              data
-            );
-            {
-              if (index == addOfflineToDBDatas.length - 1) {
-                Alert.alert("Data sync to server success.")
-              }
-            }
-
-
-            console.log(
-              "addOfflineToDBDatas add offline data to server successfully"
-            );
-          } catch (error) {
-            Alert.alert("Sync data fail!");
-
-            console.log(error);
-            return;
+      setSyncBtnLoading(false);
+      Alert.alert("Up to Date.");
+      return;
+    }
+  
+    // Upload data to the server
+    const syncOfflineData = async () => {
+      for (let i = 0; i < addOfflineToDBDatas.length; i++) {
+        try {
+          await axios.post("https://expospendtracker.vercel.app/api/data", addOfflineToDBDatas[i]);
+          console.log("Data uploaded successfully:", addOfflineToDBDatas[i]);
+  
+          if (i === addOfflineToDBDatas.length - 1) {
+            Alert.alert("Data sync to server success.");
           }
-        };
-        uploadData();
-      });
-    } else if (toDeleteDatasFromDb.length > 0) {
-      console.log('has to delete');
-      toDeleteDatasFromDb.forEach((data, index) => {
-        const handleDelete = async (data) => {
-          try {
-            const res = await axios.post(
-              "https://income-expense-utqh.onrender.com/api/data/delete",
-              data._id
-            );
+        } catch (error) {
+          console.error("Failed to upload data:", error);
+          Alert.alert("Failed to sync offline data!");
+          break;
+        }
+      }
+    };
+  
+    // Delete data from the server
+    const syncDeletedData = async () => {
+      for (let i = 0; i < toDeleteDatasFromDb.length; i++) {
+        try {
 
-            if(index == toDeleteDatasFromDb.length-1){
-
-              Alert.alert("Data sync to server success.")
-            }
-
-            console.log("toDeleteDatasFromDb delete successful");
-          } catch (error) {
-            console.log(error);
+          console.log("toDeleteDatasFromDb[i]._id: ",toDeleteDatasFromDb[i]._id);
+          await axios.post(`https://expospendtracker.vercel.app/api/data/delete/${toDeleteDatasFromDb[i]._id}`);
+  
+          if (i === toDeleteDatasFromDb.length - 1) {
+            Alert.alert("Data delete success.");
           }
-        };
-
-        handleDelete(data)
-      });
-    } else {
-      console.log("No data to upload");
+        } catch (error) {
+          console.error("Failed to delete data:", error);
+          Alert.alert("Failed to sync deleted data!");
+          break;
+        }
+      }
+    };
+  
+    // Perform syncing operations
+    try {
+      if (addOfflineToDBDatas.length > 0) {
+        await syncOfflineData();
+      }
+      if (toDeleteDatasFromDb.length > 0) {
+        await syncDeletedData();
+      }
+    } finally {
+      // Fetch latest data after sync finish
+      fetchAllData();
+      setSyncBtnLoading(false);
     }
   };
+  
 
   const handleDelete = async (item) => {
     try {
-      // const res = await axios.post(
-      //   "https://income-expense-utqh.onrender.com/api/data/delete",
-      //   { id }
-      // );
-
+      console.log('deleted items: ', item);
       dispatch(deleteOffLineData(item));
 
       Alert.alert("Delete Success!");
 
-      fetchAllData();
     } catch (error) {
       console.log(error);
     }
@@ -216,13 +202,13 @@ const home = () => {
 
   const handleLogout = async () => {
     dispatch(logOutStart());
-    
 
     try {
       const res = await axios.post(
-        "https://income-expense-utqh.onrender.com/api/auth/logout"
+        "https://expospendtracker.vercel.app/api/auth/logout"
       );
       Alert.alert("Logout Success!");
+      dispatch(clearOfflineData())
       dispatch(logOutSuccess());
       router.push("sign-in");
     } catch (error) {
@@ -231,143 +217,139 @@ const home = () => {
     }
   };
 
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-
-  const showDatePicker = () => {
-    setDatePickerVisibility(true);
+  const handleAddNew = () => {
+    router.push("new");
   };
 
-  const hideDatePicker = () => {
-    setDatePickerVisibility(false);
-  };
 
-  const handleConfirm = (date) => {
-    console.warn("A date has been picked: ", date);
-    setDate(date);
-    setForm({ ...form, time: date });
-
-    hideDatePicker();
-  };
 
   return (
-      <ScrollView>
-        <View className="pb-8 pt-4">
-          <View className="flex flex-row justify-end items-end">
-            <Image
-              source={images.profile}
-              className="w-12 h-8"
-              resizeMode="contain"
-            />
-
-            <Text className="text-2xl font-semibold text-center">
-              {currentUser?.userName}
-            </Text>
-            <CustomButtom
-              title={"Logout"}
-              handlePress={handleLogout}
-              containerStyle={"w-16 h-8 !rounded-sm"}
-              textStyle={"!text-sm !font-normal"}
-            />
-          </View>
-
-          <Text className="text-3xl font-semibold text-center">
-            Income & Expense
-          </Text>
+    <ScrollView>
+      <View className="pb-8 pt-4 relative h-screen">
+        <View className="flex flex-row justify-end items-center">
+          <Image
+            source={images.profile}
+            className="w-10 h-8"
+            resizeMode="contain"
+          />
 
           <Text className="text-xl font-semibold text-center">
-            Total amount -{" "}
-            <Text className={`${totalAmount <= 0 ? "text-red-500" : ""}`}>
-              {totalAmount}
-            </Text>{" "}
-            ks
+            {currentUser?.userName}
           </Text>
 
-          <View className="flex items-end justify-end my-4">
+          <CustomButtom
+            title={"Logout"}
+            handlePress={handleLogout}
+            containerStyle={"w-16 h-8 !rounded-sm"}
+            textStyle={"!text-sm !font-normal"}
+          />
+        </View>
+
+        <Text className="text-xl font-semibold text-center">
+          Income & Expense
+        </Text>
+
+        <Text className="text-xl font-semibold text-center">
+          Total amount -{" "}
+          <Text className={`${totalAmount <= 0 ? "text-red-500" : ""}`}>
+            {totalAmount}
+          </Text>{" "}
+          ks
+        </Text>
+
+        <View className="flex items-end justify-end my-4">
+          <CustomButtom
+            title={"Add New"}
+            handlePress={handleAddNew}
+            containerStyle={"w-24 h-12"}
+            textStyle={"!font-normal"}
+          />
+        </View>
+
+        <View className="flex items-center justify-center gap-4 flex-row mb-4">
+          <TouchableOpacity onPress={() => handleFilterType('all')}>
+            <Text className={`text-lg font-semibold px-3 py-[2px] rounded-md ${type=='all'? 'bg-green-400': ''}`}>All</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity  onPress={() => handleFilterType('Income')}>
+            <Text className={`text-lg font-semibold px-3 py-[2px] rounded-md ${type=='Income'? 'bg-green-400': ''}`}>Income</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity  onPress={() => handleFilterType('Expense')}>
+            <Text className={`text-lg font-semibold px-3 py-[2px] rounded-md ${type=='Expense'? 'bg-green-400': ''}`}>Expense</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView horizontal>
+          <View className="mx-4">
+            <View className="flex flex-row gap-x-6  justify-start items-center">
+              <Text className="flex-1   py-2 w-28">Type</Text>
+              <Text className="flex-1   py-2 w-36">Title</Text>
+              <Text className="flex-1   py-2 w-20">Amount</Text>
+              <Text className="flex-1   py-2 w-56">Date</Text>
+              <Text className="flex-1   py-2 w-24">Buttons</Text>
+            </View>
+
+            <FlatList
+              data={filteredData}
+              keyExtractor={(item) =>
+                item._id ? item._id.toString() : item.offlineId.toString()
+              }
+              renderItem={({ item }) => (
+                <View className="flex flex-row   justify-start   my-2  ">
+                  <View className="flex flex-row gap-x-6  justify-start items-center">
+                    <Text
+                      className={`${
+                        item.type == "Expense" ? "text-red-600" : ""
+                      } flex-1 w-28   py-2`}
+                    >
+                      {item.type}
+                    </Text>
+
+                    <Text className="flex-1   py-2 w-36">{item.title}</Text>
+
+                    <Text
+                      className={`${
+                        item.type == "Expense" ? "text-red-600" : ""
+                      } flex-1   py-2 w-20`}
+                    >
+                      {" "}
+                      {item.amount}
+                    </Text>
+
+                    <Text className="flex-1   py-2 w-56">
+                      {new Date(item.time).toLocaleString("en-GB")}
+                    </Text>
+
+                    <CustomButtom
+                      className="flex-1   py-2 w-24"
+                      title={"Delete"}
+                      handlePress={() => handleDelete(item)}
+                      containerStyle={"w-24 h-8 !rounded-sm  !mx-0 !ml-6"}
+                      textStyle={"!text-sm !font-normal"}
+                    />
+                  </View>
+                </View>
+              )}
+              ListEmptyComponent={() => (
+                <View className="py-2">
+                  <Text className='text-lg'>No Data. Create new.</Text>
+                </View>
+              )}
+            />
+
             <CustomButtom
-              title={"Add New"}
-              handlePress={handleAddNew}
-              containerStyle={"w-24 h-12"}
-              textStyle={"!font-normal"}
+              className="flex-1  py-2 w-24 fixed bottom-0"
+              title={"Sync datas"}
+              handlePress={() => handleSyncData()}
+              containerStyle={"w-32 h-8 !rounded-sm  !mx-0"}
+              textStyle={"!text-sm !font-normal !text-white"}
+              btnLoading={syncBtnLoading}
             />
           </View>
-
-          <View className="flex items-center justify-center gap-4 flex-row mb-4">
-            <TouchableOpacity>
-              <Text className="text-lg font-semibold">Income</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity>
-              <Text className="text-lg font-semibold">Expense</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView horizontal>
-            <View className="mx-4">
-              <View className="flex flex-row gap-x-6  justify-start items-center">
-                <Text className="flex-1   py-2 w-28">Type</Text>
-                <Text className="flex-1   py-2 w-36">Title</Text>
-                <Text className="flex-1   py-2 w-20">Amount</Text>
-                <Text className="flex-1   py-2 w-56">Date</Text>
-                <Text className="flex-1   py-2 w-24">Buttons</Text>
-              </View>
-
-              <FlatList
-                data={offLineDatas}
-                keyExtractor={(item) => item._id? item._id.toString():item.offlineId.toString()  }
-                renderItem={({ item }) => (
-                  <View className="flex flex-row   justify-start   mt-2  ">
-                    <View className="flex flex-row gap-x-6  justify-start items-center">
-                      <Text
-                        className={`${
-                          item.type == "Expense" ? "text-red-600" : ""
-                        } flex-1 w-28   py-2`}
-                      >
-                        {item.type}
-                      </Text>
-
-                      <Text className="flex-1   py-2 w-36">{item.title}</Text>
-
-                      <Text
-                        className={`${
-                          item.type == "Expense" ? "text-red-600" : ""
-                        } flex-1   py-2 w-20`}
-                      >
-                        {" "}
-                        {item.amount}
-                      </Text>
-
-                      <Text className="flex-1   py-2 w-56">
-                        {new Date(item.time).toLocaleString("en-GB")}
-                      </Text>
-
-                      <CustomButtom
-                        className="flex-1   py-2 w-24"
-                        title={"Delete"}
-                        handlePress={() => handleDelete(item)}
-                        containerStyle={"w-24 h-8 !rounded-sm  !mx-0 !ml-6"}
-                        textStyle={"!text-sm !font-normal"}
-                      />
-                    </View>
-                  </View>
-                )}
-                ListEmptyComponent={() => (
-                  <View>
-                    <Text>Empty</Text>
-                  </View>
-                )}
-              />
-
-              <CustomButtom
-                className="flex-1   py-2 w-24"
-                title={"Sync datas to server"}
-                handlePress={() => handleSyncData()}
-                containerStyle={"w-48 h-8 !rounded-sm  !mx-0 !ml-6"}
-                textStyle={"!text-sm !font-normal"}
-              />
-            </View>
-          </ScrollView>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
+    </ScrollView>
   );
 };
 
